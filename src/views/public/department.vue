@@ -51,6 +51,12 @@
             <span>{{ scope.row.updateTime }}</span>
           </template>
         </el-table-column>
+        <el-table-column fixed="right" align="operation" label="操作" width="100px">
+            <template slot-scope="scope">
+                <el-button type="text" size="mini" @click="editUser(scope.row)">编辑</el-button>
+                <el-button type="text" size="mini" @click="deleteUser(scope.row)">删除</el-button>
+            </template>
+        </el-table-column>
       </el-table>
     <!-- 新增项目界面 -->
     <el-dialog title="新增项目" :visible.sync="projectVisible" width="600px" destroy-on-close>
@@ -77,7 +83,7 @@
   </template>
 
 <script>
-import { getprojectList } from '@/api/project'
+import { getprojectList, delproject} from '@/api/project'
 
 export default {
   filters: {
@@ -129,7 +135,36 @@ export default {
             this.projectForm = {};
             this.projectVisible = true;
         },
-
+        deleteUser(row){
+          this.$confirm('确定要删除该项目吗?', '删除提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            })
+            .delproject().then(response => {
+                    this.$message.success("删除成功");
+                    this.fetchData();
+            })           
+            .catch(() => {
+                this.$message.success("取消成功");
+            })
+        },
+        editUser(row){
+          this.title = "编辑项目";
+          this.projectList = [
+            {id: row.id, project: row.project}
+          ];
+          this.projectForm = {
+            isEdit: true,
+            projectId: this.currentProject.index,
+            projectName: this.currentProject.projectName,
+          };
+          let url = "/autotest/user/role/list?projectId=" + this.currentProject.projectId;
+          this.$get(url, response =>{
+            this.projectForm.projectId = response.data;
+          });
+          this.projectVisible = true;
+        },
   }
 }
 </script>

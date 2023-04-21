@@ -7,3 +7,11 @@ export function getprojectList(params) {
     params
   })
 }
+
+export function delproject(params) {
+  return request({
+    url: '/vue-admin-template/project/delproj',
+    method: 'get',
+    params
+  })
+}
