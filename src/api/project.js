@@ -8,10 +8,19 @@ export function getprojectList(params) {
   })
 }
 
-export function delproject(params) {
+
+export function createProject(data) {
   return request({
-    url: '/vue-admin-template/project/delproj',
-    method: 'get',
-    params
+    url: '/vue-element-admin/project/create',
+    method: 'post',
+    data
+  })
+}
+
+export function updateProject(data) {
+  return request({
+    url: '/vue-element-admin/project/update',
+    method: 'post',
+    data
   })
 }

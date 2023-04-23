@@ -13,7 +13,7 @@
             <el-button size="small" @click="reset">重置</el-button>
         </el-form-item>
         <el-form-item style="float: right">
-            <el-button size="small" type="primary" icon="el-icon-plus" @click="addProject">新增项目</el-button>
+            <el-button size="small" type="primary" icon="el-icon-plus" @click="handleCreate">新增项目</el-button>
         </el-form-item>
     </el-form>
     <!--列表-->
@@ -53,37 +53,40 @@
         </el-table-column>
         <el-table-column fixed="right" align="operation" label="操作" width="100px">
             <template slot-scope="scope">
-                <el-button type="text" size="mini" @click="editUser(scope.row)">编辑</el-button>
-                <el-button type="text" size="mini" @click="deleteUser(scope.row)">删除</el-button>
+                <el-button type="text" size="mini"  @click="handleUpdate(scope.row)">编辑</el-button>
+                <el-button type="text" size="mini" @click="handleDelete(row,$index)">删除</el-button>
             </template>
         </el-table-column>
       </el-table>
-    <!-- 新增项目界面 -->
-    <el-dialog title="新增项目" :visible.sync="projectVisible" width="600px" destroy-on-close>
-        <el-form label-width="120px" style="padding-right: 30px;" :model="projectForm" label-position="top" :rules="rules" ref="projectForm">
-          <el-form-item label="部门名称" prop="projectAdmin">
-                <el-select size="small" style="width: 100%" v-model="projectForm.projectAdmin" filterable placeholder="请选择项目管理员">
-                    <el-option v-for="item in userList" :key="item.id" :label="item.username" :value="item.id"/>
-                </el-select>
-          </el-form-item>  
-          <el-form-item label="项目名称" prop="name">
-                <el-input size="small" style="width: 100%" v-model="projectForm.name" placeholder="请输入项目名称"/>
-          </el-form-item>
-          <el-form-item label="项目描述" prop="description">
-                <el-input size="small" style="width: 100%" :autosize="{ minRows: 4}" type="textarea" clearable placeholder="请输入项目描述" 
-                        v-model="projectForm.description" maxlength="200" show-word-limit/>
-          </el-form-item>
-        </el-form>
-        <div slot="footer" class="dialog-footer">
-            <el-button size="small" @click="projectVisible=false">取消</el-button>
-            <el-button size="small" type="primary" @click="submitProjectForm('projectForm', projectForm)">确定</el-button>
-        </div>
+
+      <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
+      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;">
+        <el-form-item label="Type" prop="type">
+          <el-select v-model="temp.type" class="filter-item" placeholder="Please select">
+            <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name" :value="item.key" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="Title" prop="title">
+          <el-input v-model="temp.title" />
+        </el-form-item>
+        <el-form-item label="Remark">
+          <el-input v-model="temp.remark" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="Please input" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">
+          Cancel
+        </el-button>
+        <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">
+          Confirm
+        </el-button>
+      </div>
     </el-dialog>
     </div>
   </template>
 
 <script>
-import { getprojectList, delproject} from '@/api/project'
+import { getprojectList, createProject, updateProject } from '@/api/project'
 
 export default {
   filters: {
@@ -107,6 +110,26 @@ export default {
                 limit: 10,
                 condition: ""
             },
+      temp: {
+        id: undefined,
+        importance: 1,
+        remark: '',
+        timestamp: new Date(),
+        title: '',
+        type: '',
+        status: 'published'
+      },
+      dialogFormVisible: false,
+      dialogStatus: '',
+      textMap: {
+        update: 'Edit',
+        create: 'Create'
+      },
+      rules: {
+        type: [{ required: true, message: 'type is required', trigger: 'change' }],
+        timestamp: [{ type: 'date', required: true, message: 'timestamp is required', trigger: 'change' }],
+        title: [{ required: true, message: 'title is required', trigger: 'blur' }]
+      },
     }
   },
   created() {
@@ -121,50 +144,89 @@ export default {
         this.listLoading = false
       })
     },
-        // 搜索按钮
-        search() {
-            this.fetchData(this.searchForm);
-        },
-        // 重置按钮
-        reset() {
-            this.searchForm.condition = "";
-            this.fetchData(this.searchForm);
-        },
-        // 新增项目
-        addProject(){
-            this.projectForm = {};
-            this.projectVisible = true;
-        },
-        deleteUser(row){
-          this.$confirm('确定要删除该项目吗?', '删除提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
+    // 搜索按钮
+    search() {
+        this.fetchData(this.searchForm);
+    },
+    // 重置按钮
+    reset() {
+        this.searchForm.condition = "";
+        this.fetchData(this.searchForm);
+    },
+    resetTemp() {
+      this.temp = {
+        id: undefined,
+        importance: 1,
+        remark: '',
+        timestamp: new Date(),
+        title: '',
+        status: 'published',
+        type: ''
+      }
+    },
+    handleCreate() {
+      this.resetTemp()
+      this.dialogStatus = 'create'
+      this.dialogFormVisible = true
+      this.$nextTick(() => {
+        this.$refs['dataForm'].clearValidate()
+      })
+    },
+    createData() {
+      this.$refs['dataForm'].validate((valid) => {
+        if (valid) {
+          this.temp.id = parseInt(Math.random() * 100) + 1024 // mock a id
+          this.temp.author = 'vue-element-admin'
+          createProject(this.temp).then(() => {
+            this.list.unshift(this.temp)
+            this.dialogFormVisible = false
+            this.$notify({
+              title: 'Success',
+              message: 'Created Successfully',
+              type: 'success',
+              duration: 2000
             })
-            .delproject().then(response => {
-                    this.$message.success("删除成功");
-                    this.fetchData();
-            })           
-            .catch(() => {
-                this.$message.success("取消成功");
+          })
+        }
+      })
+    },
+    handleUpdate(row) {
+      this.temp = Object.assign({}, row) // copy obj
+      this.temp.timestamp = new Date(this.temp.timestamp)
+      this.dialogStatus = 'update'
+      this.dialogFormVisible = true
+      this.$nextTick(() => {
+        this.$refs['dataForm'].clearValidate()
+      })
+    },
+    updateData() {
+      this.$refs['dataForm'].validate((valid) => {
+        if (valid) {
+          const tempData = Object.assign({}, this.temp)
+          tempData.timestamp = +new Date(tempData.timestamp) // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
+          updateProject(tempData).then(() => {
+            const index = this.list.findIndex(v => v.id === this.temp.id)
+            this.list.splice(index, 1, this.temp)
+            this.dialogFormVisible = false
+            this.$notify({
+              title: 'Success',
+              message: 'Update Successfully',
+              type: 'success',
+              duration: 2000
             })
-        },
-        editUser(row){
-          this.title = "编辑项目";
-          this.projectList = [
-            {id: row.id, project: row.project}
-          ];
-          this.projectForm = {
-            isEdit: true,
-            projectId: this.currentProject.index,
-            projectName: this.currentProject.projectName,
-          };
-          let url = "/autotest/user/role/list?projectId=" + this.currentProject.projectId;
-          this.$get(url, response =>{
-            this.projectForm.projectId = response.data;
-          });
-          this.projectVisible = true;
-        },
+          })
+        }
+      })
+    },
+    handleDelete(row, index) {
+      this.$notify({
+        title: 'Success',
+        message: 'Delete Successfully',
+        type: 'success',
+        duration: 2000
+      })
+      this.list.splice(index, 1)
+    }
   }
 }
 </script>

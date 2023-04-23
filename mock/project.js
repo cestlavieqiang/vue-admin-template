@@ -24,5 +24,26 @@ module.exports = [
         }
       }
     }
+  },
+  {
+    url: '/vue-element-admin/article/create',
+    type: 'post',
+    response: _ => {
+      return {
+        code: 20000,
+        data: 'success'
+      }
+    }
+  },
+
+  {
+    url: '/vue-element-admin/article/update',
+    type: 'post',
+    response: _ => {
+      return {
+        code: 20000,
+        data: 'success'
+      }
+    }
   }
 ]
