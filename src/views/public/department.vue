@@ -52,24 +52,27 @@
           </template>
         </el-table-column>
         <el-table-column fixed="right" align="operation" label="操作" width="100px">
-            <template slot-scope="scope">
-                <el-button type="text" size="mini"  @click="handleUpdate(scope.row)">编辑</el-button>
+            <template slot-scope="{row,$index}">
+                <el-button type="text" size="mini"  @click="handleUpdate(row)">编辑</el-button>
                 <el-button type="text" size="mini" @click="handleDelete(row,$index)">删除</el-button>
             </template>
         </el-table-column>
       </el-table>
 
       <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
-      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="70px" style="width: 400px; margin-left:50px;">
-        <el-form-item label="Type" prop="type">
-          <el-select v-model="temp.type" class="filter-item" placeholder="Please select">
-            <el-option v-for="item in calendarTypeOptions" :key="item.key" :label="item.display_name" :value="item.key" />
+      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="100px" style="width: 400px; margin-left:50px;">
+        <el-form-item label="部门名称" prop="department">
+          <el-select v-model="temp.department" class="filter-item" placeholder="Please select">
+            <el-option v-for="item in list" :key="item.id" :label="item.department" :value="item.department" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Title" prop="title">
-          <el-input v-model="temp.title" />
+        <el-form-item label="项目名称" prop="project">
+          <el-input v-model="temp.project" />
         </el-form-item>
-        <el-form-item label="Remark">
+        <el-form-item label="所属端" prop="terminal">
+          <el-input v-model="temp.terminal" />
+        </el-form-item>
+        <el-form-item label="描述">
           <el-input v-model="temp.remark" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="Please input" />
         </el-form-item>
       </el-form>
@@ -86,7 +89,7 @@
   </template>
 
 <script>
-import { getprojectList, createProject, updateProject } from '@/api/project'
+import { getprojectList, createProject, updateProject, deleteProject } from '@/api/project'
 
 export default {
   filters: {
@@ -112,12 +115,11 @@ export default {
             },
       temp: {
         id: undefined,
-        importance: 1,
         remark: '',
-        timestamp: new Date(),
-        title: '',
-        type: '',
-        status: 'published'
+        updateTime: new Date(),
+        project: '',
+        department: '',
+        terminal: '',
       },
       dialogFormVisible: false,
       dialogStatus: '',
@@ -126,9 +128,9 @@ export default {
         create: 'Create'
       },
       rules: {
-        type: [{ required: true, message: 'type is required', trigger: 'change' }],
-        timestamp: [{ type: 'date', required: true, message: 'timestamp is required', trigger: 'change' }],
-        title: [{ required: true, message: 'title is required', trigger: 'blur' }]
+        department: [{ required: true, message: 'departmentname is required', trigger: 'change' }],
+        projectn: [{ required: true, message: 'projectname is required', trigger: 'blur' }],
+        terminal: [{ required: true, message: 'terminal is required', trigger: 'blur' }]
       },
     }
   },
@@ -141,6 +143,7 @@ export default {
       getprojectList().then(response => {
         console.log(response.data)
         this.list = response.data.items
+        console.log(this.list)
         this.listLoading = false
       })
     },
@@ -156,12 +159,11 @@ export default {
     resetTemp() {
       this.temp = {
         id: undefined,
-        importance: 1,
         remark: '',
-        timestamp: new Date(),
-        title: '',
-        status: 'published',
-        type: ''
+        updateTime: new Date(),
+        project: '',
+        department: '',
+        terminal: ''
       }
     },
     handleCreate() {
@@ -176,7 +178,6 @@ export default {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
           this.temp.id = parseInt(Math.random() * 100) + 1024 // mock a id
-          this.temp.author = 'vue-element-admin'
           createProject(this.temp).then(() => {
             this.list.unshift(this.temp)
             this.dialogFormVisible = false
@@ -192,7 +193,7 @@ export default {
     },
     handleUpdate(row) {
       this.temp = Object.assign({}, row) // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp)
+      // this.temp.updateTime = new Date(this.temp.updateTime)
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
       this.$nextTick(() => {
@@ -203,11 +204,13 @@ export default {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
           const tempData = Object.assign({}, this.temp)
-          tempData.timestamp = +new Date(tempData.timestamp) // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
+          tempData.updateTime = +new Date() // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
           updateProject(tempData).then(() => {
-            const index = this.list.findIndex(v => v.id === this.temp.id)
+            const index = this.list.findIndex(v => v.department === this.temp.department)
             this.list.splice(index, 1, this.temp)
             this.dialogFormVisible = false
+            console.log(update)
+            console.log(this.list)
             this.$notify({
               title: 'Success',
               message: 'Update Successfully',
@@ -219,13 +222,23 @@ export default {
       })
     },
     handleDelete(row, index) {
-      this.$notify({
-        title: 'Success',
-        message: 'Delete Successfully',
-        type: 'success',
-        duration: 2000
-      })
-      this.list.splice(index, 1)
+      this.$confirm('确定要删除该项目下的用户吗?', '删除提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            })
+            .then(() => {
+                deleteProject(index)
+                this.list.splice(index, 1)
+                
+                this.$message.success("删除成功");
+                // this.fetchData();
+             
+            })
+            .catch(() => {
+                this.$message.success("取消成功");
+            })
+
     }
   }
 }

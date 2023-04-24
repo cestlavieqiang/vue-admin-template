@@ -24,3 +24,11 @@ export function updateProject(data) {
     data
   })
 }
+
+export function deleteProject(data) {
+  return request({
+    url: '/vue-element-admin/project/delete',
+    method: 'post',
+    data
+  })
+}
