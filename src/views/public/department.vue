@@ -193,7 +193,7 @@ export default {
     },
     handleUpdate(row) {
       this.temp = Object.assign({}, row) // copy obj
-      // this.temp.updateTime = new Date(this.temp.updateTime)
+      this.temp.updateTime = new Date()
       this.dialogStatus = 'update'
       this.dialogFormVisible = true
       this.$nextTick(() => {
@@ -204,13 +204,11 @@ export default {
       this.$refs['dataForm'].validate((valid) => {
         if (valid) {
           const tempData = Object.assign({}, this.temp)
-          tempData.updateTime = +new Date() // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
+          // tempData.updateTime = new Date() // change Thu Nov 30 2017 16:41:05 GMT+0800 (CST) to 1512031311464
           updateProject(tempData).then(() => {
             const index = this.list.findIndex(v => v.department === this.temp.department)
             this.list.splice(index, 1, this.temp)
             this.dialogFormVisible = false
-            console.log(update)
-            console.log(this.list)
             this.$notify({
               title: 'Success',
               message: 'Update Successfully',
